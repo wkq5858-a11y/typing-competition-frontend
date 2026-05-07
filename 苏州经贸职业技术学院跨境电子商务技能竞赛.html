@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>苏州经贸职业技术学院 | 跨境电子商务技能竞赛</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', 'PingFang SC', Roboto, sans-serif; }
+        body { background: linear-gradient(145deg, #0b1120 0%, #111827 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1500px; margin: 0 auto; }
+        .hero { text-align: center; margin-bottom: 32px; }
+        .hero h1 { font-size: 1.8rem; background: linear-gradient(135deg, #FBBF24, #F97316); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .hero p { color: #9ca3af; margin-top: 8px; }
+        .dashboard { display: grid; grid-template-columns: 1fr 360px; gap: 28px; }
+        @media (max-width: 860px) { .dashboard { grid-template-columns: 1fr; } }
+        .test-panel { background: rgba(17,24,39,0.75); backdrop-filter: blur(12px); border-radius: 32px; border: 1px solid rgba(255,165,0,0.3); padding: 24px; }
+        .identity { background: #0f172a; border-radius: 24px; padding: 18px 22px; margin-bottom: 28px; display: flex; gap: 20px; flex-wrap: wrap; border-left: 5px solid #F97316; }
+        .field { flex: 1; min-width: 160px; }
+        .field label { display: block; font-size: 0.7rem; color: #94a3b8; margin-bottom: 6px; }
+        .field input { width: 100%; background: #020617; border: 1px solid #334155; padding: 12px 14px; border-radius: 20px; color: #f1f5f9; }
+        .field input:focus { outline: none; border-color: #F97316; }
+        .timer-row { display: flex; justify-content: space-between; align-items: center; background: #0f172a; border-radius: 60px; padding: 8px 20px; margin-bottom: 24px; }
+        .timer-digits { font-family: monospace; font-size: 2.2rem; font-weight: bold; color: #FBBF24; }
+        .status { background: #1e293b; padding: 6px 18px; border-radius: 40px; color: #cbd5e6; }
+        .status.active { background: #16a34a; color: white; }
+        .ref-card { background: #0b1120; border-radius: 24px; padding: 20px; margin-bottom: 20px; border: 1px solid #2d3a5e; user-select: none; }
+        .ref-title { display: flex; justify-content: space-between; color: #facc15; margin-bottom: 14px; border-bottom: 1px dashed #334155; padding-bottom: 6px; }
+        .ref-content { color: #e2e8f0; line-height: 1.72; font-size: 0.95rem; text-align: justify; max-height: 300px; overflow-y: auto; }
+        .typing-input { width: 100%; height: 200px; background: #020617; border: 2px solid #334155; border-radius: 24px; padding: 18px; color: #facc15; font-size: 1rem; line-height: 1.65; resize: vertical; font-family: monospace; }
+        .typing-input:focus { border-color: #F97316; outline: none; }
+        .typing-input:disabled { background: #111827; color: #6b7280; }
+        .live-stats { display: flex; gap: 24px; background: #0f172a; border-radius: 28px; padding: 12px 20px; margin: 20px 0; justify-content: space-around; }
+        .stat-number { font-size: 1.7rem; font-weight: 800; color: #FBBF24; font-family: monospace; }
+        .stat-label { font-size: 0.7rem; color: #9ca3af; }
+        .btn-group { display: flex; gap: 14px; flex-wrap: wrap; }
+        .btn { padding: 10px 26px; border-radius: 40px; font-weight: 700; border: none; cursor: pointer; transition: 0.2s; }
+        .btn-primary { background: linear-gradient(95deg, #F97316, #EA580C); color: white; }
+        .btn-secondary { background: #1e293b; color: #e2e8f0; border: 1px solid #475569; }
+        .btn-danger { background: #7f1a1a; color: #ffcdcd; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .rank-panel { background: rgba(17,24,39,0.8); backdrop-filter: blur(12px); border-radius: 32px; border: 1px solid rgba(251,191,36,0.3); overflow: hidden; }
+        .rank-header { background: linear-gradient(95deg, #1e293b, #0f172a); padding: 20px; text-align: center; border-bottom: 1px solid #F97316; }
+        .rank-header h2 { color: #FBBF24; font-size: 1.3rem; }
+        .rank-list { max-height: 560px; overflow-y: auto; }
+        .rank-table { width: 100%; border-collapse: collapse; }
+        .rank-table th { text-align: left; padding: 12px; background: #0b1120; color: #cbd5e6; font-size: 0.7rem; }
+        .rank-table td { padding: 10px 12px; border-bottom: 1px solid #2d3a5e; color: #e2e8f0; font-size: 0.85rem; }
+        .rank-1 { color: #FFD966; } .rank-2 { color: #C0C0C0; } .rank-3 { color: #CD7F32; }
+        .empty-rank { text-align: center; padding: 40px; color: #6b7280; }
+        .clear-rank-btn { margin: 16px; background: #1a1f2e; border: 1px solid #475569; padding: 8px; border-radius: 28px; color: #9ca3af; cursor: pointer; width: calc(100% - 32px); }
+        .auto-refresh-tag { font-size: 0.65rem; color: #facc15; background: #0f172a; display: inline-block; padding: 2px 10px; border-radius: 20px; margin-top: 8px; }
+        .cloud-status { font-size: 0.7rem; color: #22c55e; margin-top: 10px; text-align: center; }
+        .custom-modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px); z-index:1000; align-items:center; justify-content:center; }
+        .modal-card { background:#1e293b; max-width:340px; width:90%; border-radius:32px; padding:28px 24px; text-align:center; border:1px solid #F97316; }
+        .modal-card input { width:100%; padding:12px; background:#0f172a; border:1px solid #475569; border-radius:40px; color:white; margin:12px 0; text-align:center; }
+        .modal-buttons { display:flex; gap:12px; margin-top:18px; }
+        .modal-confirm { background:#F97316; color:white; flex:1; padding:8px; border-radius:40px; cursor:pointer; }
+        .modal-cancel { background:#334155; color:white; flex:1; padding:8px; border-radius:40px; cursor:pointer; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="hero">
+        <h1>🏆 苏州经贸职业技术学院跨境电子商务技能竞赛 🏆</h1>
+        <p>☁️ 云端实时排名 · 全院成绩汇聚 · 每5秒自动同步</p>
+    </div>
+    <div class="dashboard">
+        <div class="test-panel">
+            <div class="identity">
+                <div class="field"><label>📘 学号</label><input type="text" id="studentId" placeholder="例: 20240321001"></div>
+                <div class="field"><label>👤 姓名</label><input type="text" id="studentName" placeholder="例: 李竞逐"></div>
+            </div>
+            <div class="timer-row">
+                <div class="timer-digits" id="timerDisplay">05:00</div>
+                <div class="status" id="statusBadge">⚡ 未开始</div>
+            </div>
+            <div class="ref-card" oncopy="return false" oncut="return false" oncontextmenu="return false">
+                <div class="ref-title">📄 竞赛原文 · 产教融合与跨境新业态 <span style="font-size:10px;">🔒 禁止复制</span></div>
+                <div class="ref-content" id="referenceText">
+                    我们团队所在的学校与一家户外装备企业建立了校企合作。过去一年，我们深入这家企业，全程跟进运营、销售、用户反馈，也走进了乡村文旅一线。正是在这段实习里，我们看到了一个核心问题：这家企业——包括行业里很多传统户外商家——经营思维还停留在“卖货”阶段，像帐篷、露营推车这类核心品类，只管卖出去，却不管用户会不会用、用在哪里；而另一边，乡村农户守着优质的营地、田园资源，不懂数字化运营，引不来客流；文旅商家也只顾卖门票，农业主体只管种田，三大板块各自为战，产业链条彻底断裂。供需两端严重割裂，大量市场需求和乡村资源始终对接不上。
+                    带着这个观察，我们开始关注外部环境的变化。近期，国家部分地区率先推行春假等政策，假期延长、出行时间更灵活，直接释放了家庭亲子、短途休闲的户外出游需求。同时，“骑行友好城市”在23个城市落地，“地铁+骑行”的低碳出行加速普及，户外装备消费和近郊乡村游迎来爆发式增长。政策红利和消费风口已经叠加，但行业原有的经营模式——单点卖货、各自为战——根本接不住这波需求。
+                    正是基于在一线实习中发现的经营困局，结合政策带来的市场机遇，我们下定决心，要打破传统单一经营的路径。我们提出的核心逻辑，不是简单“卖货”，而是从“产品交易”升级为“生活方式交付”——打通“户外装备精准匹配+乡村文旅深度触达”的全链路融合新范式，用数据补齐行业短板，让供需两端真正对接。
+                </div>
+            </div>
+            <textarea class="typing-input" id="typingInput" placeholder="✍️ 填写学号姓名后，点击【开始挑战】..." rows="6" disabled></textarea>
+            <div class="live-stats">
+                <div><div class="stat-number" id="wpmValue">0</div><div class="stat-label">速度(字/分)</div></div>
+                <div><div class="stat-number" id="accuracyValue">100</div><div class="stat-label">正确率%</div></div>
+                <div><div class="stat-number" id="charStat">0/0</div><div class="stat-label">正确/总字符</div></div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="startBtn">🚀 开始挑战</button>
+                <button class="btn btn-secondary" id="submitBtn" disabled>🏅 提交&上榜</button>
+                <button class="btn btn-danger" id="resetTestBtn">🔄 重置本次</button>
+            </div>
+            <div class="auto-refresh-tag">🔄 云端排行每5秒自动同步全院成绩</div>
+            <div class="cloud-status" id="cloudStatus">☁️ 连接云端中...</div>
+        </div>
+        <div class="rank-panel">
+            <div class="rank-header"><h2>🏆 全院实时荣耀榜</h2><div class="rank-sub">综合得分 = 速度×正确率 | 云端汇总</div></div>
+            <div class="rank-list" id="rankListContainer"><div class="empty-rank">✨ 加载云端数据中... ✨</div></div>
+            <button class="clear-rank-btn" id="clearRankBtn">🗑️ 清空全部排名 (需密码)</button>
+        </div>
+    </div>
+</div>
+
+<div id="passwordModal" class="custom-modal">
+    <div class="modal-card">
+        <h3>🔐 管理员验证</h3>
+        <input type="password" id="adminPasswordInput" placeholder="请输入清空密码">
+        <div class="modal-buttons"><button class="modal-confirm" id="modalConfirmBtn">确认清空</button><button class="modal-cancel" id="modalCancelBtn">取消</button></div>
+    </div>
+</div>
+
+<script>
+    // ==================== ✅ 已配置您的 Render 后端地址 ====================
+    const API_BASE_URL = "https://typing-competition-backend-1.onrender.com";
+    // ====================================================================
+    
+    const REQUIRED_PASSWORD = "13915125858";
+    const DURATION_SEC = 5 * 60;
+    let timeLeft = DURATION_SEC;
+    let timerInterval = null;
+    let isTesting = false;
+    let testStartTimestamp = null;
+    let originalText = "";
+    
+    // DOM 元素
+    const studentIdInput = document.getElementById('studentId');
+    const studentNameInput = document.getElementById('studentName');
+    const typingInput = document.getElementById('typingInput');
+    const timerDisplaySpan = document.getElementById('timerDisplay');
+    const statusBadge = document.getElementById('statusBadge');
+    const startBtn = document.getElementById('startBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const resetTestBtn = document.getElementById('resetTestBtn');
+    const wpmSpan = document.getElementById('wpmValue');
+    const accuracySpan = document.getElementById('accuracyValue');
+    const charStatSpan = document.getElementById('charStat');
+    const referenceDiv = document.getElementById('referenceText');
+    const rankContainer = document.getElementById('rankListContainer');
+    const cloudStatusSpan = document.getElementById('cloudStatus');
+    
+    // 模态框
+    const passwordModal = document.getElementById('passwordModal');
+    const adminPasswordInput = document.getElementById('adminPasswordInput');
+    const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+    const modalCancelBtn = document.getElementById('modalCancelBtn');
+    
+    // ========== 云端 API 调用 ==========
+    async function loadRankingFromCloud() {
+        try {
+            cloudStatusSpan.innerText = "☁️ 同步排名中...";
+            const response = await fetch(`${API_BASE_URL}/api/scores`);
+            const result = await response.json();
+            if (result.success) {
+                renderLeaderboard(result.data);
+                cloudStatusSpan.innerText = "☁️ 云端已连接 · 全院实时榜";
+            } else {
+                throw new Error("获取数据失败");
+            }
+        } catch (err) {
+            console.error("加载云端排名失败:", err);
+            cloudStatusSpan.innerText = "⚠️ 云端连接失败，请检查后端地址";
+            rankContainer.innerHTML = '<div class="empty-rank">⚠️ 无法连接云端，请确保后端已部署</div>';
+        }
+    }
+    
+    async function saveScoreToCloud(studentId, studentName, wpm, accuracy, totalScore) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/scores`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ studentId, studentName, wpm, accuracy, totalScore })
+            });
+            const result = await response.json();
+            return result;
+        } catch (err) {
+            console.error("保存失败:", err);
+            return { success: false, message: "网络错误，保存失败" };
+        }
+    }
+    
+    async function clearAllRankingCloud(password) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/clear`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            });
+            const result = await response.json();
+            return result;
+        } catch (err) {
+            console.error("清空失败:", err);
+            return { success: false, message: "网络错误" };
+        }
+    }
+    
+    function renderLeaderboard(rankings) {
+        if (!rankings || rankings.length === 0) {
+            rankContainer.innerHTML = '<div class="empty-rank">🏅 暂无选手完成测试，快来成为榜首！</div>';
+            return;
+        }
+        let html = `<table class="rank-table"><thead><tr><th>🏅</th><th>学号</th><th>姓名</th><th>速度</th><th>正确率</th><th>综合得分</th></tr></thead><tbody>`;
+        rankings.forEach((item, idx) => {
+            let medal = idx === 0 ? "🥇" : (idx === 1 ? "🥈" : (idx === 2 ? "🥉" : `${idx + 1}`));
+            let medalClass = idx === 0 ? "rank-1" : (idx === 1 ? "rank-2" : (idx === 2 ? "rank-3" : ""));
+            html += `<tr><td class="${medalClass}">${medal}</td><td>${escapeHtml(item.studentId)}</td><td>${escapeHtml(item.studentName)}</td><td>${Math.round(item.wpm)}</td><td>${Math.round(item.accuracy)}%</td><td><strong>${Math.round(item.totalScore)}</strong></td></tr>`;
+        });
+        html += `</tbody></table>`;
+        rankContainer.innerHTML = html;
+    }
+    
+    function escapeHtml(str) { return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;')); }
+    
+    function computeLiveStats() {
+        if (!isTesting && !testStartTimestamp) return { correct: 0, accuracy: 100, wpm: 0, totalLen: originalText.length };
+        const typed = typingInput.value, original = originalText;
+        let correct = 0;
+        for (let i = 0; i < Math.min(typed.length, original.length); i++) if (typed[i] === original[i]) correct++;
+        const acc = typed.length === 0 ? 100 : (correct / typed.length) * 100;
+        let wpm = 0;
+        if (isTesting && testStartTimestamp) {
+            const minutes = (Date.now() - testStartTimestamp) / 60000;
+            if (minutes > 0 && correct > 0) wpm = correct / minutes;
+        }
+        return { correct, accuracy: acc, wpm, totalLen: original.length };
+    }
+    
+    function updateUIStats() { const s = computeLiveStats(); wpmSpan.innerText = Math.floor(s.wpm); accuracySpan.innerText = Math.floor(s.accuracy); charStatSpan.innerText = `${s.correct}/${s.totalLen}`; }
+    function formatTime(sec) { return `${Math.floor(sec / 60).toString().padStart(2, '0')}:${(sec % 60).toString().padStart(2, '0')}`; }
+    
+    function startTimer() {
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            if (!isTesting) return;
+            if (timeLeft <= 1) { timeLeft = 0; timerDisplaySpan.innerText = formatTime(0); forceFinish(); }
+            else { timeLeft--; timerDisplaySpan.innerText = formatTime(timeLeft); }
+        }, 1000);
+    }
+    
+    function forceFinish() {
+        if (!isTesting) return;
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = null; isTesting = false; typingInput.disabled = true; startBtn.disabled = false; submitBtn.disabled = false;
+        statusBadge.innerText = "⏰ 时间截止·可提交"; statusBadge.classList.remove("active"); updateUIStats();
+    }
+    
+    function startTest() {
+        if (!studentIdInput.value.trim() || !studentNameInput.value.trim()) { alert("请填写学号和姓名"); return; }
+        if (isTesting) { alert("测试进行中"); return; }
+        if (timerInterval) clearInterval(timerInterval);
+        timeLeft = DURATION_SEC; timerDisplaySpan.innerText = formatTime(DURATION_SEC);
+        typingInput.value = ""; typingInput.disabled = false; isTesting = true; testStartTimestamp = Date.now();
+        startBtn.disabled = true; submitBtn.disabled = false; statusBadge.innerText = "🔥 竞赛进行中"; statusBadge.classList.add("active");
+        originalText = referenceDiv.innerText; charStatSpan.innerText = `0/${originalText.length}`; typingInput.focus();
+        startTimer(); typingInput.oninput = () => { if (isTesting) updateUIStats(); }; updateUIStats();
+    }
+    
+    async function submitScore() {
+        if (!testStartTimestamp && !isTesting && typingInput.value.length === 0) { alert("请先开始测试"); return; }
+        if (isTesting) {
+            if (!confirm("提前提交将结束测试，确定提交吗？")) return;
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = null; isTesting = false; typingInput.disabled = true; startBtn.disabled = false;
+            statusBadge.innerText = "✅ 已提交排名"; statusBadge.classList.remove("active"); updateUIStats();
+        }
+        const studentId = studentIdInput.value.trim(), studentName = studentNameInput.value.trim();
+        if (!studentId || !studentName) { alert("学号/姓名缺失"); return; }
+        const typed = typingInput.value, original = originalText;
+        let correct = 0;
+        for (let i = 0; i < Math.min(typed.length, original.length); i++) if (typed[i] === original[i]) correct++;
+        const accuracy = typed.length === 0 ? 0 : (correct / typed.length) * 100;
+        let wpmFinal = 0;
+        if (testStartTimestamp) { const minutes = (Date.now() - testStartTimestamp) / 60000; if (minutes > 0 && correct > 0) wpmFinal = correct / minutes; }
+        const totalScore = wpmFinal * (accuracy / 100);
+        alert(`🏆 成绩: ${Math.round(wpmFinal)}字/分, 正确率${Math.round(accuracy)}%, 综合${Math.round(totalScore)}`);
+        const result = await saveScoreToCloud(studentId, studentName, wpmFinal, accuracy, totalScore);
+        alert(result.message);
+        await loadRankingFromCloud();
+        submitBtn.disabled = true;
+    }
+    
+    function resetCurrent() {
+        if (isTesting && !confirm("重置将丢失当前进度，确定吗？")) return;
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = null; isTesting = false; typingInput.disabled = true; startBtn.disabled = false; submitBtn.disabled = true;
+        typingInput.value = ""; timeLeft = DURATION_SEC; timerDisplaySpan.innerText = formatTime(DURATION_SEC);
+        statusBadge.innerText = "⚡ 已重置"; statusBadge.classList.remove("active"); testStartTimestamp = null;
+        updateUIStats(); if (originalText) charStatSpan.innerText = `0/${originalText.length}`;
+    }
+    
+    function showPasswordModal() { adminPasswordInput.value = ""; passwordModal.style.display = "flex"; }
+    function closeModal() { passwordModal.style.display = "none"; }
+    async function verifyAndClear() {
+        if (adminPasswordInput.value === REQUIRED_PASSWORD) {
+            const result = await clearAllRankingCloud(adminPasswordInput.value);
+            alert(result.message);
+            if (result.success) await loadRankingFromCloud();
+            closeModal();
+        } else { alert("❌ 密码错误"); closeModal(); }
+    }
+    
+    // 每5秒自动刷新排名
+    setInterval(() => { loadRankingFromCloud(); }, 5000);
+    
+    // 初始化
+    (async function init() {
+        originalText = referenceDiv.innerText;
+        charStatSpan.innerText = `0/${originalText.length}`;
+        document.querySelector('.ref-card').addEventListener('copy', e => e.preventDefault());
+        await loadRankingFromCloud();
+        startBtn.onclick = startTest;
+        submitBtn.onclick = submitScore;
+        resetTestBtn.onclick = resetCurrent;
+        clearRankBtn.onclick = showPasswordModal;
+        modalConfirmBtn.onclick = verifyAndClear;
+        modalCancelBtn.onclick = closeModal;
+        window.onclick = (e) => { if (e.target === passwordModal) closeModal(); };
+        typingInput.disabled = true; submitBtn.disabled = true;
+    })();
+</script>
+</body>
+</html>
