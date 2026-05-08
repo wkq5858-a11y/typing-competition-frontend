@@ -59,8 +59,6 @@
         .modal-confirm { background:#F97316; color:white; flex:1; padding:8px; border-radius:40px; cursor:pointer; }
         .modal-cancel { background:#334155; color:white; flex:1; padding:8px; border-radius:40px; cursor:pointer; }
         .admin-edit-area { margin-top: 20px; }
-        /* 禁止复制的样式 */
-        .no-copy { user-select: none; -webkit-user-select: none; }
     </style>
 </head>
 <body>
@@ -106,7 +104,7 @@
                 <button class="clear-rank-btn" id="clearRankBtn">🗑️ 清空全部排名 (需密码)</button>
             </div>
 
-            <!-- 管理员编辑区域（管理员输入的内容也不能复制粘贴） -->
+            <!-- 管理员编辑区域（允许粘贴，禁止复制） -->
             <div class="rank-panel admin-edit-area">
                 <div class="rank-header">
                     <h2>✏️ 管理员编辑竞赛原文</h2>
@@ -119,7 +117,7 @@
                     </div>
                     <div class="field" style="margin-top: 12px;">
                         <label>📝 新的打字内容</label>
-                        <textarea id="newTextContent" rows="8" style="width:100%; background:#020617; border:1px solid #334155; border-radius:16px; padding:12px; color:#f1f5f9; resize:vertical; font-size:0.85rem; line-height:1.5;" oncopy="return false" oncut="return false" onpaste="return false" oncontextmenu="return false" ondragstart="return false" onselectstart="return false"></textarea>
+                        <textarea id="newTextContent" rows="8" style="width:100%; background:#020617; border:1px solid #334155; border-radius:16px; padding:12px; color:#f1f5f9; resize:vertical; font-size:0.85rem; line-height:1.5;" oncopy="return false" oncut="return false" oncontextmenu="return false"></textarea>
                     </div>
                     <button class="btn btn-primary" id="updateTextBtn" style="margin-top: 12px; width:100%;">✏️ 更新竞赛原文</button>
                     <div id="editResult" style="margin-top: 10px; font-size:0.8rem; text-align:center;"></div>
@@ -288,7 +286,7 @@
             rankContainer.innerHTML = '<div class="empty-rank">🏅 暂无选手完成测试，快来成为榜首！</div>';
             return;
         }
-        let html = `<table class="rank-table"><thead><tr><th>🏅</th><th>学号</th><th>姓名</th><th>速度</th><th>正确率</th><th>综合得分</th><tr></thead><tbody>`;
+        let html = `<table class="rank-table"><thead><tr><th>🏅</th><th>学号</th><th>姓名</th><th>速度</th><th>正确率</th><th>综合得分</th></tr></thead><tbody>`;
         rankings.forEach((item, idx) => {
             let medal = idx === 0 ? "🥇" : (idx === 1 ? "🥈" : (idx === 2 ? "🥉" : `${idx + 1}`));
             let medalClass = idx === 0 ? "rank-1" : (idx === 1 ? "rank-2" : (idx === 2 ? "rank-3" : ""));
