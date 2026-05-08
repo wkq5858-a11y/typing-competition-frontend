@@ -195,24 +195,43 @@
         }
     }
     
-    // 加载当前打字内容
+    // ========== ✅ 修复后的加载打字内容函数 ==========
     async function loadCurrentText() {
         try {
+            console.log("开始加载文本...");
+            cloudStatusSpan.innerText = "☁️ 正在加载文章...";
+            
             const response = await fetch(`${API_BASE_URL}/api/text`);
+            console.log("响应状态:", response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
             const result = await response.json();
+            console.log("获取到的数据:", result);
+            
             if (result.success && result.data) {
                 originalText = result.data;
                 referenceDiv.innerText = originalText;
                 newTextContent.value = originalText;
                 charStatSpan.innerText = `0/${originalText.length}`;
-                console.log("文本加载成功，长度:", originalText.length);
+                cloudStatusSpan.innerText = "☁️ 文章加载成功";
+                console.log("✅ 文本加载成功，长度:", originalText.length);
             } else {
-                throw new Error("获取文本失败");
+                throw new Error("返回数据格式错误");
             }
         } catch (err) {
-            console.error("加载文本失败:", err);
-            referenceDiv.innerText = "无法加载竞赛原文，请检查网络连接。";
-            originalText = "加载失败，请刷新页面重试。";
+            console.error("❌ 加载文本失败:", err);
+            cloudStatusSpan.innerText = "⚠️ 加载失败，使用默认文章";
+            
+            // 备用：使用默认文章
+            const defaultText = `我们团队所在的学校与一家户外装备企业建立了校企合作。过去一年，我们深入这家企业，全程跟进运营、销售、用户反馈，也走进了乡村文旅一线。正是在这段实习里，我们看到了一个核心问题：这家企业——包括行业里很多传统户外商家——经营思维还停留在"卖货"阶段，像帐篷、露营推车这类核心品类，只管卖出去，却不管用户会不会用、用在哪里；而另一边，乡村农户守着优质的营地、田园资源，不懂数字化运营，引不来客流；文旅商家也只顾卖门票，农业主体只管种田，三大板块各自为战，产业链条彻底断裂。供需两端严重割裂，大量市场需求和乡村资源始终对接不上。\n\n带着这个观察，我们开始关注外部环境的变化。近期，国家部分地区率先推行春假等政策，假期延长、出行时间更灵活，直接释放了家庭亲子、短途休闲的户外出游需求。同时，"骑行友好城市"在23个城市落地，"地铁+骑行"的低碳出行加速普及，户外装备消费和近郊乡村游迎来爆发式增长。政策红利和消费风口已经叠加，但行业原有的经营模式——单点卖货、各自为战——根本接不住这波需求。\n\n正是基于在一线实习中发现的经营困局，结合政策带来的市场机遇，我们下定决心，要打破传统单一经营的路径。我们提出的核心逻辑，不是简单"卖货"，而是从"产品交易"升级为"生活方式交付"——打通"户外装备精准匹配+乡村文旅深度触达"的全链路融合新范式，用数据补齐行业短板，让供需两端真正对接。`;
+            
+            originalText = defaultText;
+            referenceDiv.innerText = originalText;
+            newTextContent.value = originalText;
+            charStatSpan.innerText = `0/${originalText.length}`;
         }
     }
     
@@ -220,7 +239,7 @@
         try {
             const response = await fetch(`${API_BASE_URL}/api/scores`, {
                 method: 'POST',
-                headers: { 'Content-Type':application/json' },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ studentId, studentName, wpm, accuracy, totalScore })
             });
             const result = await response.json();
@@ -235,7 +254,7 @@
         try {
             const response = await fetch(`${API_BASE_URL}/api/clear`, {
                 method: 'POST',
-                headers: { 'Content-Type':application/json' },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ password })
             });
             const result = await response.json();
@@ -251,7 +270,7 @@
         try {
             const response = await fetch(`${API_BASE_URL}/api/text`, {
                 method: 'POST',
-                headers: { 'Content-Type':application/json' },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ password, newText })
             });
             const result = await response.json();
@@ -387,12 +406,10 @@
         
         if (result.success) {
             editResult.innerHTML = '<span style="color:#22c55e;">✅ 更新成功！页面已同步新内容</span>';
-            // 立即更新当前页面显示
             originalText = newText;
             referenceDiv.innerText = originalText;
             charStatSpan.innerText = `0/${originalText.length}`;
             adminEditPassword.value = "";
-            // 如果测试没有进行中，清空输入框提示
             if (!isTesting) {
                 typingInput.value = "";
             }
@@ -407,9 +424,7 @@
     
     // 初始化
     (async function init() {
-        // 先加载文本内容
         await loadCurrentText();
-        // 加载排行榜
         await loadRankingFromCloud();
         
         document.querySelector('.ref-card').addEventListener('copy', e => e.preventDefault());
