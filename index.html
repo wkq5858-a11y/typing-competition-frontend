@@ -59,13 +59,14 @@
         .modal-confirm { background:#F97316; color:white; flex:1; padding:8px; border-radius:40px; cursor:pointer; }
         .modal-cancel { background:#334155; color:white; flex:1; padding:8px; border-radius:40px; cursor:pointer; }
         .admin-edit-area { margin-top: 20px; }
+        .warning-tip { font-size: 0.7rem; color: #f97316; margin-top: 8px; text-align: center; }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="hero">
         <h1>🏆 苏州经贸职业技术学院跨境电子商务技能竞赛 🏆</h1>
-        <p>☁️ 云端实时排名 · 全院成绩汇聚 · 每5秒自动同步</p>
+        <p>☁️ 云端实时排名 · 全院成绩汇聚 · 每5秒自动同步 · 5分钟倒计时结束自动提交</p>
     </div>
     <div class="dashboard">
         <div class="test-panel">
@@ -83,22 +84,22 @@
             </div>
             <textarea class="typing-input" id="typingInput" placeholder="✍️ 填写学号姓名后，点击【开始挑战】..." rows="6" disabled></textarea>
             <div class="live-stats">
-                <div><div class="stat-number" id="wpmValue">0</div><div class="stat-label">速度(字/分)</div></div>
+                <div><div class="stat-number" id="netWpmValue">0</div><div class="stat-label">净速度(正确字/分)</div></div>
                 <div><div class="stat-number" id="accuracyValue">100</div><div class="stat-label">正确率%</div></div>
                 <div><div class="stat-number" id="charStat">0/0</div><div class="stat-label">正确/总字符</div></div>
             </div>
             <div class="btn-group">
                 <button class="btn btn-primary" id="startBtn">🚀 开始挑战</button>
-                <button class="btn btn-secondary" id="submitBtn" disabled>🏅 提交&上榜</button>
-                <button class="btn btn-danger" id="resetTestBtn">🔄 重置本次</button>
+                <button class="btn btn-secondary" id="resetTestBtn">🔄 重置本次</button>
             </div>
             <div class="auto-refresh-tag">🔄 云端排行每5秒自动同步全院成绩</div>
             <div class="cloud-status" id="cloudStatus">☁️ 连接云端中...</div>
+            <div class="warning-tip">⏰ 5分钟倒计时结束后会自动弹出成绩，点击确认即可上榜</div>
         </div>
 
         <div>
             <div class="rank-panel">
-                <div class="rank-header"><h2>🏆 全院实时荣耀榜</h2><div class="rank-sub">综合得分 = 速度×正确率 | 云端汇总</div></div>
+                <div class="rank-header"><h2>🏆 全院实时荣耀榜</h2><div class="rank-sub">🏅 综合得分 = 净速度（每分钟正确字符数）🏅</div></div>
                 <div class="rank-list" id="rankListContainer"><div class="empty-rank">✨ 加载云端数据中... ✨</div></div>
                 <button class="clear-rank-btn" id="clearRankBtn">🗑️ 清空全部排名 (需密码)</button>
             </div>
@@ -134,6 +135,7 @@
 </div>
 
 <script>
+    // ==================== 后端地址 ====================
     const API_BASE_URL = "https://typing-competition-backend-1.onrender.com";
     const REQUIRED_PASSWORD = "13915125858";
     const DURATION_SEC = 5 * 60;
@@ -142,6 +144,7 @@
     let isTesting = false;
     let testStartTimestamp = null;
     let originalText = "";
+    let hasAutoSubmitted = false;  // 防止重复自动提交
 
     // DOM 元素
     const studentIdInput = document.getElementById('studentId');
@@ -150,9 +153,8 @@
     const timerDisplaySpan = document.getElementById('timerDisplay');
     const statusBadge = document.getElementById('statusBadge');
     const startBtn = document.getElementById('startBtn');
-    const submitBtn = document.getElementById('submitBtn');
     const resetTestBtn = document.getElementById('resetTestBtn');
-    const wpmSpan = document.getElementById('wpmValue');
+    const netWpmSpan = document.getElementById('netWpmValue');
     const accuracySpan = document.getElementById('accuracyValue');
     const charStatSpan = document.getElementById('charStat');
     const referenceDiv = document.getElementById('referenceText');
@@ -167,9 +169,8 @@
     const updateTextBtn = document.getElementById('updateTextBtn');
     const editResult = document.getElementById('editResult');
 
-    // ---------- 正确率核心算法（最长公共子序列）----------
+    // ========== 核心算法：最长公共子序列 ==========
     function lcsLength(a, b) {
-        // 计算两个字符串的最长公共子序列长度（字符级）
         const m = a.length, n = b.length;
         const dp = new Array(m + 1);
         for (let i = 0; i <= m; i++) dp[i] = new Uint16Array(n + 1);
@@ -184,40 +185,38 @@
     }
 
     function computeCorrectChars(typed, original) {
-        // 使用 LCS 计算真正匹配的字符数（不要求位置连续）
         if (!typed || !original) return 0;
         return lcsLength(typed, original);
     }
 
-    // 实时统计（使用 LCS 正确字符数）
     function computeLiveStats() {
         if (!isTesting && !testStartTimestamp) {
-            return { correct: 0, typedLen: 0, accuracy: 100, wpm: 0, totalLen: originalText.length };
+            return { correct: 0, typedLen: 0, accuracy: 100, netWpm: 0, totalLen: originalText.length };
         }
         const typed = typingInput.value;
         const original = originalText;
-        if (!original) return { correct: 0, typedLen: 0, accuracy: 100, wpm: 0, totalLen: 0 };
+        if (!original) return { correct: 0, typedLen: 0, accuracy: 100, netWpm: 0, totalLen: 0 };
         
-        const correct = computeCorrectChars(typed, original);   // 关键修正点
+        const correct = computeCorrectChars(typed, original);
         const typedLen = typed.length;
         const accuracy = typedLen === 0 ? 100 : (correct / typedLen) * 100;
         
-        let wpm = 0;
+        let netWpm = 0;
         if (isTesting && testStartTimestamp) {
             const minutes = (Date.now() - testStartTimestamp) / 60000;
-            if (minutes > 0 && correct > 0) wpm = correct / minutes;
+            if (minutes > 0 && correct > 0) netWpm = correct / minutes;
         }
-        return { correct, typedLen, accuracy, wpm, totalLen: original.length };
+        return { correct, typedLen, accuracy, netWpm, totalLen: original.length };
     }
 
     function updateUIStats() {
         const s = computeLiveStats();
-        wpmSpan.innerText = Math.floor(s.wpm);
+        netWpmSpan.innerText = Math.floor(s.netWpm);
         accuracySpan.innerText = Math.floor(s.accuracy);
         charStatSpan.innerText = `${s.correct}/${s.totalLen}`;
     }
 
-    // 其他函数（加载排名、保存成绩等）保持不变，只修正提交时的计算
+    // ========== 加载排名 ==========
     async function loadRankingFromCloud() {
         try {
             cloudStatusSpan.innerText = "☁️ 同步排名中...";
@@ -234,6 +233,7 @@
         }
     }
 
+    // ========== 加载打字内容 ==========
     async function loadCurrentText() {
         try {
             console.log("开始加载文本...");
@@ -260,16 +260,66 @@
         }
     }
 
-    async function saveScoreToCloud(studentId, studentName, wpm, accuracy, totalScore) {
+    // ========== 保存成绩到云端 ==========
+    async function saveScoreToCloud(studentId, studentName, netWpm, accuracy, totalScore) {
         try {
             const response = await fetch(`${API_BASE_URL}/api/scores`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ studentId, studentName, wpm, accuracy, totalScore })
+                body: JSON.stringify({ studentId, studentName, wpm: netWpm, accuracy, totalScore })
             });
             return await response.json();
         } catch (err) {
             return { success: false, message: "网络错误" };
         }
+    }
+
+    // ========== 自动提交成绩（时间到调用）==========
+    async function autoSubmitScore() {
+        if (hasAutoSubmitted) return;
+        
+        const studentId = studentIdInput.value.trim();
+        const studentName = studentNameInput.value.trim();
+        
+        if (!studentId || !studentName) {
+            alert("学号或姓名为空，无法自动提交成绩！请刷新页面重新测试。");
+            return;
+        }
+        
+        const typed = typingInput.value;
+        const original = originalText;
+        const correct = computeCorrectChars(typed, original);
+        const accuracy = typed.length === 0 ? 0 : (correct / typed.length) * 100;
+        let netWpm = 0;
+        if (testStartTimestamp) {
+            const minutes = (Date.now() - testStartTimestamp) / 60000;
+            if (minutes > 0 && correct > 0) netWpm = correct / minutes;
+        }
+        const totalScore = netWpm;
+        
+        // 弹出成绩确认框
+        const userConfirmed = confirm(
+            `⏰ 5分钟时间到！\n\n` +
+            `📊 您的成绩：\n` +
+            `正确字符数：${correct}\n` +
+            `正确率：${Math.round(accuracy)}%\n` +
+            `净速度：${Math.round(netWpm)} 字/分钟\n` +
+            `综合得分：${Math.round(totalScore)}\n\n` +
+            `点击「确定」提交成绩并上榜，点击「取消」放弃本次成绩。`
+        );
+        
+        if (userConfirmed) {
+            const result = await saveScoreToCloud(studentId, studentName, netWpm, accuracy, totalScore);
+            alert(result.message);
+            await loadRankingFromCloud();
+        } else {
+            alert("已放弃本次成绩，可点击「重置本次」后重新开始测试。");
+        }
+        
+        hasAutoSubmitted = true;
+        
+        // 测试结束后禁用输入框，但允许重置
+        typingInput.disabled = true;
+        statusBadge.innerText = "✅ 测试结束";
     }
 
     async function clearAllRankingCloud(password) {
@@ -296,12 +346,13 @@
         }
     }
 
+    // ========== 渲染排行榜 ==========
     function renderLeaderboard(rankings) {
         if (!rankings || rankings.length === 0) {
             rankContainer.innerHTML = '<div class="empty-rank">🏅 暂无选手完成测试</div>';
             return;
         }
-        let html = `<table class="rank-table"><thead><tr><th>🏅</th><th>学号</th><th>姓名</th><th>速度</th><th>正确率</th><th>综合得分</th></tr></thead><tbody>`;
+        let html = `<table class="rank-table"><thead><tr><th>🏅</th><th>学号</th><th>姓名</th><th>净速度(字/分)</th><th>正确率</th><th>综合得分</th></tr></thead><tbody>`;
         rankings.forEach((item, idx) => {
             let medal = idx === 0 ? "🥇" : (idx === 1 ? "🥈" : (idx === 2 ? "🥉" : `${idx+1}`));
             let medalClass = idx === 0 ? "rank-1" : (idx === 1 ? "rank-2" : (idx === 2 ? "rank-3" : ""));
@@ -315,40 +366,48 @@
 
     function formatTime(sec) { return `${Math.floor(sec/60).toString().padStart(2,'0')}:${(sec%60).toString().padStart(2,'0')}`; }
     
+    // ========== 计时器 ==========
     function startTimer() {
         if (timerInterval) clearInterval(timerInterval);
         timerInterval = setInterval(() => {
             if (!isTesting) return;
-            if (timeLeft <= 1) { timeLeft = 0; timerDisplaySpan.innerText = formatTime(0); forceFinish(); }
-            else { timeLeft--; timerDisplaySpan.innerText = formatTime(timeLeft); }
+            if (timeLeft <= 1) {
+                timeLeft = 0;
+                timerDisplaySpan.innerText = formatTime(0);
+                // 时间到，结束测试并自动提交
+                if (isTesting) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    isTesting = false;
+                    typingInput.disabled = true;
+                    startBtn.disabled = false;
+                    statusBadge.innerText = "⏰ 时间到";
+                    statusBadge.classList.remove("active");
+                    updateUIStats();
+                    // 自动弹出提交框
+                    autoSubmitScore();
+                }
+            } else {
+                timeLeft--;
+                timerDisplaySpan.innerText = formatTime(timeLeft);
+            }
         }, 1000);
     }
 
-    function forceFinish() {
-        if (!isTesting) return;
-        if (timerInterval) clearInterval(timerInterval);
-        timerInterval = null;
-        isTesting = false;
-        typingInput.disabled = true;
-        startBtn.disabled = false;
-        submitBtn.disabled = false;
-        statusBadge.innerText = "⏰ 时间截止·可提交";
-        statusBadge.classList.remove("active");
-        updateUIStats();
-    }
-
+    // ========== 开始测试 ==========
     function startTest() {
         if (!studentIdInput.value.trim() || !studentNameInput.value.trim()) { alert("请填写学号和姓名"); return; }
         if (isTesting) { alert("测试进行中"); return; }
         if (timerInterval) clearInterval(timerInterval);
+        
         timeLeft = DURATION_SEC;
+        hasAutoSubmitted = false;
         timerDisplaySpan.innerText = formatTime(DURATION_SEC);
         typingInput.value = "";
         typingInput.disabled = false;
         isTesting = true;
         testStartTimestamp = Date.now();
         startBtn.disabled = true;
-        submitBtn.disabled = false;
         statusBadge.innerText = "🔥 竞赛进行中";
         statusBadge.classList.add("active");
         charStatSpan.innerText = `0/${originalText.length}`;
@@ -358,45 +417,15 @@
         updateUIStats();
     }
 
-    async function submitScore() {
-        if (!testStartTimestamp && !isTesting && typingInput.value.length === 0) { alert("请先开始测试"); return; }
-        if (isTesting) {
-            if (!confirm("提前提交将结束测试，确定提交吗？")) return;
-            if (timerInterval) clearInterval(timerInterval);
-            timerInterval = null;
-            isTesting = false;
-            typingInput.disabled = true;
-            startBtn.disabled = false;
-            statusBadge.innerText = "✅ 已提交排名";
-            statusBadge.classList.remove("active");
-            updateUIStats();
-        }
-        const studentId = studentIdInput.value.trim(), studentName = studentNameInput.value.trim();
-        if (!studentId || !studentName) { alert("学号/姓名缺失"); return; }
-        const typed = typingInput.value, original = originalText;
-        const correct = computeCorrectChars(typed, original);
-        const accuracy = typed.length === 0 ? 0 : (correct / typed.length) * 100;
-        let wpmFinal = 0;
-        if (testStartTimestamp) {
-            const minutes = (Date.now() - testStartTimestamp) / 60000;
-            if (minutes > 0 && correct > 0) wpmFinal = correct / minutes;
-        }
-        const totalScore = wpmFinal * (accuracy / 100);
-        alert(`🏆 成绩: ${Math.round(wpmFinal)}字/分, 正确率${Math.round(accuracy)}%, 综合${Math.round(totalScore)}`);
-        const result = await saveScoreToCloud(studentId, studentName, wpmFinal, accuracy, totalScore);
-        alert(result.message);
-        await loadRankingFromCloud();
-        submitBtn.disabled = true;
-    }
-
+    // ========== 重置 ==========
     function resetCurrent() {
         if (isTesting && !confirm("重置将丢失当前进度，确定吗？")) return;
         if (timerInterval) clearInterval(timerInterval);
         timerInterval = null;
         isTesting = false;
+        hasAutoSubmitted = false;
         typingInput.disabled = true;
         startBtn.disabled = false;
-        submitBtn.disabled = true;
         typingInput.value = "";
         timeLeft = DURATION_SEC;
         timerDisplaySpan.innerText = formatTime(DURATION_SEC);
@@ -407,6 +436,7 @@
         if (originalText) charStatSpan.innerText = `0/${originalText.length}`;
     }
 
+    // ========== 清空排名 ==========
     function showPasswordModal() { adminPasswordInput.value = ""; passwordModal.style.display = "flex"; }
     function closeModal() { passwordModal.style.display = "none"; }
     async function verifyAndClear() {
@@ -418,6 +448,7 @@
         } else { alert("❌ 密码错误"); closeModal(); }
     }
 
+    // ========== 更新文章 ==========
     updateTextBtn.onclick = async () => {
         const password = adminEditPassword.value.trim();
         const newText = newTextContent.value;
@@ -438,21 +469,21 @@
         }
     };
 
+    // 每5秒自动刷新排名
     setInterval(() => { loadRankingFromCloud(); }, 5000);
 
+    // 初始化
     (async function init() {
         await loadCurrentText();
         await loadRankingFromCloud();
         document.querySelector('.ref-card').addEventListener('copy', e => e.preventDefault());
         startBtn.onclick = startTest;
-        submitBtn.onclick = submitScore;
         resetTestBtn.onclick = resetCurrent;
         clearRankBtn.onclick = showPasswordModal;
         modalConfirmBtn.onclick = verifyAndClear;
         modalCancelBtn.onclick = closeModal;
         window.onclick = (e) => { if (e.target === passwordModal) closeModal(); };
         typingInput.disabled = true;
-        submitBtn.disabled = true;
         statusBadge.innerText = "⚡ 未开始";
     })();
 </script>
